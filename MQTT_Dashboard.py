@@ -34,14 +34,12 @@ def connect_mqtt():
     client.connect(broker, port)
     return client
 
-
 def subscribe(client: mqtt_client):
 
     def on_message(client, userdata, msg):
         print(f"recieved '{msg.payload.decode()}' from '{msg.topic}' topic")
     client.subscribe(topic_sub)
     client.on_message = on_message
-
 
 def publish(client,counter):
     msg = counter
@@ -52,15 +50,11 @@ def publish(client,counter):
     else:
         print("failed")
 
-
-
 def glass_finished(client):
     global daily_count
     daily_count+=1
     if daily_count <= 8: # only send a message while daily count is less than 8
         publish(client,daily_count)
-
- 
 
 def create_window(mqtt_client):
     window = Tk()
