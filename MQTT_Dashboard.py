@@ -44,9 +44,11 @@ def connect_mqtt():
     return client
 
 def subscribe(client: mqtt_client):
-
+    global daily_count
     def on_message(client, userdata, msg):
         print(f"recieved '{msg.payload.decode()}' from '{msg.topic}' topic")
+        daily_count = int(msg.payload.decode())
+        
     client.subscribe(topic_sub)
     client.on_message = on_message
 
