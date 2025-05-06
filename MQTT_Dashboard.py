@@ -15,7 +15,9 @@ password = os.getenv("PASSWORD")
 device_id = os.getenv("DEVICE_ID")
 
 daily_count = 0
-monthly_count = 2
+monthly_count = 15
+
+
 item_dict = {"item_0": False, "item_1": False, "item_2": False, "item_4": False,
               "item_5": False, "item_6": False, "item_7": False, "item_8": False, 
               "item_9": False, "item_10": False, "item_11": False, "item_12": False,               
@@ -25,6 +27,7 @@ item_dict = {"item_0": False, "item_1": False, "item_2": False, "item_4": False,
               "item_25": False, "item_26": False, "item_27": False, "item_28": False,
               "item_29": False, "item_30": False, "item_31": False}
 lst = []
+water_frames = []
 img_x = 0
 img_y = 0
 
@@ -36,7 +39,6 @@ def connect_mqtt():
         else:
             print("failed to connect")
     client = mqtt_client.Client(client_id=client_id, callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
-    #client.username_pw_set(username, password)
     client.on_connect = on_connect
     client.connect(broker, port)
     return client
@@ -57,128 +59,166 @@ def publish(client,counter):
     else:
         print("failed")
 
-def glass_finished(client):
-    global daily_count
-    daily_count+=1
-    if daily_count <= 8: # only send a message while daily count is less than 8
-        publish(client,daily_count)
+ 
 
-def create_window(mqtt_client):
+def create_window(client):
     window = Tk()
     window.title("MQTT Dashboard")
     window.geometry('325x700')
     window.resizable(False,False)
-    window.configure(bg="white")
-    
-    photo = PhotoImage(file="shelf.png")
-    canvas = Canvas(window, width=325, height=700, borderwidth=0, highlightthickness=0)
 
-    canvas.create_image(0,0, anchor=NW, image=photo)
-    canvas.imgref = photo
+    # background image
+    canvas = Canvas(window, width=325, height=700, borderwidth=0, highlightthickness=0)
+    background_img = PhotoImage(file="background.png")
+    canvas.create_image(0,0, anchor=NW, image=background_img)
+
+    # water tracker image
+    frame_img = PhotoImage(file="F0.png")
+    water_frames.append(frame_img)
+    canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
+
+    # garbage collection
+    canvas.imgref = background_img
     canvas.pack()
 
-    # canvas1 = Canvas(canvas, width=20, height=20, background="black", borderwidth=0, highlightthickness=0)
-    # canvas.create_window(20,20, anchor="nw", window=canvas1)
+ 
+    def glass_finished(client):
+        global daily_count
+        global monthly_count
+        daily_count+=1
 
-    img = PhotoImage(file="button.png")   
+        if daily_count <= 8:
+            for x in range(daily_count+1):
+                frame_img = PhotoImage(file=f"F{str(x)}.png")
+                water_frames.append(frame_img)
+                canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
+
+            publish(client, daily_count)
+
+
+            if daily_count == 8:
+                monthly_count+=1
+                day_complete()
+            print(daily_count)
+
 
     def day_complete():
         global monthly_count
-        img_0 = PhotoImage(file="img_0.png")
-        img_1 = PhotoImage(file="img_1.png")
-        img_2 = PhotoImage(file="img_2.png")
-        # img_3 = PhotoImage(file="img_3.png")
-        # img_4 = PhotoImage(file="img_4.png")
-        # img_5 = PhotoImage(file="img_5.png")
-        # img_6 = PhotoImage(file="img_6.png")
-        # img_7 = PhotoImage(file="img_7.png")
-        # img_8 = PhotoImage(file="img_8.png")
-        # img_9 = PhotoImage(file="img_9.png")
-        # img_10 = PhotoImage(file="img_10.png")
-        # img_11 = PhotoImage(file="img_11.png")
-        # img_12 = PhotoImage(file="img_12.png")
-        # img_13 = PhotoImage(file="img_13.png")
-        # img_14 = PhotoImage(file="img_14.png")
-        # img_15 = PhotoImage(file="img_15.png")
-        # img_16 = PhotoImage(file="img_16.png")
-        # img_17 = PhotoImage(file="img_17.png")
-        # img_18 = PhotoImage(file="img_18.png")
-        # img_19 = PhotoImage(file="img_19.png")
-        # img_20 = PhotoImage(file="img_20.png")
-        # img_21 = PhotoImage(file="img_21.png")
-        # img_22 = PhotoImage(file="img_22.png")
-        # img_23 = PhotoImage(file="img_23.png")
-        # img_24 = PhotoImage(file="img_24.png")
-        # img_25 = PhotoImage(file="img_25.png")
-        # img_26 = PhotoImage(file="img_26.png")
-        # img_27 = PhotoImage(file="img_27.png")
-        # img_28 = PhotoImage(file="img_28.png")
-        # img_29 = PhotoImage(file="img_29.png")
-        # img_30 = PhotoImage(file="img_30.png")
-        # img_31 = PhotoImage(file="img_31.png")
+        if monthly_count < 31:
+            for x in range(monthly_count):
+                #x = random.randint(0,2)
+                if (item_dict.get("item_"+str(x)) == False):
 
-
-        item_0 = canvas.create_image(0,0, anchor=NW,image=img_0)
-        item_1 = canvas.create_image(0,0, anchor=NW, image=img_1)
-        item_2 = canvas.create_image(0,0, anchor=NW, image=img_2)
-        # item_3 = canvas.create_image(0,0, anchor=NW,image=img_3)
-        # item_4 = canvas.create_image(0,0, anchor=NW, image=img_4)
-        # item_5 = canvas.create_image(0,0, anchor=NW, image=img_5)
-        # item_6 = canvas.create_image(0,0, anchor=NW,image=img_6)
-        # item_7 = canvas.create_image(0,0, anchor=NW,image=img_7)
-        # item_8 = canvas.create_image(0,0, anchor=NW,image=img_8)
-        # item_9 = canvas.create_image(0,0, anchor=NW,image=img_9)
-        # item_10 = canvas.create_image(0,0, anchor=NW,image=img_10)
-        # item_11 = canvas.create_image(0,0, anchor=NW,image=img_11)
-        # item_12 = canvas.create_image(0,0, anchor=NW,image=img_12)
-        # item_13 = canvas.create_image(0,0, anchor=NW,image=img_13)
-        # item_14 = canvas.create_image(0,0, anchor=NW,image=img_14)
-        # item_15 = canvas.create_image(0,0, anchor=NW,image=img_15)
-        # item_16 = canvas.create_image(0,0, anchor=NW,image=img_16)
-        # item_17 = canvas.create_image(0,0, anchor=NW,image=img_17)
-        # item_18 = canvas.create_image(0,0, anchor=NW,image=img_18)
-        # item_19 = canvas.create_image(0,0, anchor=NW,image=img_19)
-        # item_20 = canvas.create_image(0,0, anchor=NW,image=img_20)
-        # item_21 = canvas.create_image(0,0, anchor=NW,image=img_21)
-        # item_22 = canvas.create_image(0,0, anchor=NW,image=img_22)
-        # item_23 = canvas.create_image(0,0, anchor=NW,image=img_23)
-        # item_24 = canvas.create_image(0,0, anchor=NW,image=img_24)
-        # item_25 = canvas.create_image(0,0, anchor=NW,image=img_25)
-        # item_26 = canvas.create_image(0,0, anchor=NW,image=img_26)
-        # item_27 = canvas.create_image(0,0, anchor=NW,image=img_27)
-        # item_28 = canvas.create_image(0,0, anchor=NW,image=img_28)
-        # item_29 = canvas.create_image(0,0, anchor=NW,image=img_29)
-        # item_30 = canvas.create_image(0,0, anchor=NW,image=img_30)
-        # item_31 = canvas.create_image(0,0, anchor=NW,image=img_31)
-
-        
-        img_dict = list(range(3))
-  
-
-        #print(item_dict.get("item_"+str(x)))
-        for day in range(monthly_count):
-            x = random.randint(0,2)
-            if (item_dict.get("item_"+str(x)) == False):
-
-                active_img = PhotoImage(file=f"img_{str(x)}.png")
-                lst.append(active_img)
+                    active_img = PhotoImage(file=f"img_{str(x)}.png")
+                    lst.append(active_img)
+                    
+                    # 1ST ROW -----------------
+                    if x == 0:
+                        img_x = 0
+                        img_y = 13
+                    elif x == 1:
+                        img_x = 11
+                        img_y = 19
+                    elif x == 2:
+                        img_x = 22
+                        img_y = 17
+                    elif x == 3:
+                        img_x = 33
+                        img_y = 19
+                    elif x == 4:
+                        img_x = 46
+                        img_y = 20
+                    elif x == 5:
+                        img_x = 60
+                        img_y = 20
+                    # 2ND ROW ----------------
+                    elif x == 6:
+                        img_x = 0
+                        img_y = 39
+                    elif x == 7:
+                        img_x = 6
+                        img_y = 37
+                    elif x == 8:
+                        img_x = 23
+                        img_y = 39
+                    elif x == 9:
+                        img_x = 29
+                        img_y = 38
+                    elif x == 10:
+                        img_x = 46
+                        img_y = 42
+                    elif x == 11:
+                        img_x = 57
+                        img_y = 35
+                    # 3RD ROW ---------------
+                    elif x == 12:
+                        img_x = 0
+                        img_y = 59
+                    elif x == 13:
+                        img_x = 6
+                        img_y = 59
+                    elif x == 14:
+                        img_x = 22
+                        img_y = 59
+                    elif x == 15:
+                        img_x = 33
+                        img_y = 57
+                    elif x == 16:
+                        img_x = 47
+                        img_y = 63
+                    elif x == 17:
+                        img_x = 54
+                        img_y = 57
+                    # 4TH ROW ------------------
+                    elif x == 18:
+                        img_x = 1
+                        img_y = 79
+                    elif x == 19:
+                        img_x = 0
+                        img_y = 85
+                    elif x == 20:
+                        img_x = 23
+                        img_y = 85
+                    elif x == 21:
+                        img_x = 32
+                        img_y = 84
+                    elif x == 22:
+                        img_x = 45
+                        img_y = 84
+                    elif x == 23:
+                        img_x = 56
+                        img_y = 81
+                    # 5TH ROW -------------------
+                    elif x == 24:
+                        img_x = 6
+                        img_y = 100   
+                    elif x == 25:
+                        img_x = 0
+                        img_y = 107
+                    elif x == 26:
+                        img_x = 45
+                        img_y = 101    
+                    elif x == 27:
+                        img_x = 60
+                        img_y = 105 
+                    # 6TH ROW ------------------
+                    elif x == 28:
+                        img_x = 0
+                        img_y = 122
+                    elif x == 29:
+                        img_x = 47
+                        img_y = 122
+                    else:
+                        img_x = 0
+                        img_y = 120
                 
-                if x == 0:
-                    img_x = 5
-                    img_y = 13*5
-                elif x == 1:
-                    img_x = 110
-                    img_y = 12*5
-                else:
-                    img_x = 160
-                    img_y = 12*5    
-            
-                canvas.create_image(img_x,img_y, anchor=NW, image=active_img)
-                item_dict["item_"+str(x)] = True
-            else:
-                x = random.randint(0,2)
-                
-    btn = Button(window, command=lambda:glass_finished(mqtt_client), image=img, borderwidth=0, highlightthickness=0)
+                    canvas.create_image(img_x*5,img_y*5, anchor=NW, image=active_img)
+                    item_dict["item_"+str(x)] = True
+
+    day_complete()
+    img = PhotoImage(file="button.png")  
+    btn = Button(window, image=img, command=lambda:glass_finished(client), borderwidth=0, highlightthickness=0)
+    #  command=lambda:glass_finished(mqtt_client),
     btn.imgref = img
     btn.place(x=100,y=610)
     
@@ -194,7 +234,6 @@ def main():
     client.loop_start()
 
     subscribe(client) # currently for debugging 
-
     window = create_window(client)
 
     window.mainloop()
