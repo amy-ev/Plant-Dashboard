@@ -147,115 +147,39 @@ def create_window(client):
 
     def day_complete():
         global monthly_count
-        if monthly_count < 31:
-            for x in range(monthly_count):
 
-                active_img = PhotoImage(file=f"img_{str(x)}.png")
+        active_img = PhotoImage()
+        image_id = canvas.create_image(0,0,image=active_img)
+
+        pos_dict = {"img0":(0,13),"img1":(11,19),"img2":(22,17),"img3":(32,19),"img4":(46,20),"img5":(60,20),
+            "img6":(0,39),"img7":(6,37),"img8":(23,39),"img9":(29,38),"img10":(46,42),"img11":(57,35),
+            "img12":(0,59),"img13":(6,59),"img14":(22,59),"img15":(33,57),"img16":(47,63),"img17":(54,57),
+            "img18":(1,79),"img19":(0,85),"img20":(23,85),"img21":(32,84),"img22":(45,84),"img23":(56,81),
+            "img24":(6,100),"img25":(0,107),"img26":(45,101),"img27":(60,105),
+            "img28":(0,122),"img29":(47,122)}
+
+        if monthly_count < 31:
+             for x in range(monthly_count):
+                active_img = PhotoImage(file=f"img_{x}.png")
                 lst.append(active_img)
-                
-                # 1ST ROW -----------------
-                if x == 0:
-                    img_x = 0
-                    img_y = 13
-                elif x == 1:
-                    img_x = 11
-                    img_y = 19
-                elif x == 2:
-                    img_x = 22
-                    img_y = 17
-                elif x == 3:
-                    img_x = 32
-                    img_y = 19
-                elif x == 4:
-                    img_x = 46
-                    img_y = 20
-                elif x == 5:
-                    img_x = 60
-                    img_y = 20
-                # 2ND ROW ----------------
-                elif x == 6:
-                    img_x = 0
-                    img_y = 39
-                elif x == 7:
-                    img_x = 6
-                    img_y = 37
-                elif x == 8:
-                    img_x = 23
-                    img_y = 39
-                elif x == 9:
-                    img_x = 29
-                    img_y = 38
-                elif x == 10:
-                    img_x = 46
-                    img_y = 42
-                elif x == 11:
-                    img_x = 57
-                    img_y = 35
-                # 3RD ROW ---------------
-                elif x == 12:
-                    img_x = 0
-                    img_y = 59
-                elif x == 13:
-                    img_x = 6
-                    img_y = 59
-                elif x == 14:
-                    img_x = 22
-                    img_y = 59
-                elif x == 15:
-                    img_x = 33
-                    img_y = 57
-                elif x == 16:
-                    img_x = 47
-                    img_y = 63
-                elif x == 17:
-                    img_x = 54
-                    img_y = 57
-                # 4TH ROW ------------------
-                elif x == 18:
-                    img_x = 1
-                    img_y = 79
-                elif x == 19:
-                    img_x = 0
-                    img_y = 85
-                elif x == 20:
-                    img_x = 23
-                    img_y = 85
-                elif x == 21:
-                    img_x = 32
-                    img_y = 84
-                elif x == 22:
-                    img_x = 45
-                    img_y = 84
-                elif x == 23:
-                    img_x = 56
-                    img_y = 81
-                # 5TH ROW -------------------
-                elif x == 24:
-                    img_x = 6
-                    img_y = 100   
-                elif x == 25:
-                    img_x = 0
-                    img_y = 107
-                elif x == 26:
-                    img_x = 45
-                    img_y = 101    
-                elif x == 27:
-                    img_x = 60
-                    img_y = 105 
-                # 6TH ROW ------------------
-                elif x == 28:
-                    img_x = 0
-                    img_y = 122
-                elif x == 29:
-                    img_x = 47
-                    img_y = 122
-                else:
-                    img_x = 0
-                    img_y = 120
+
+                values = pos_dict.get(f"img{x}", [])
+                img_x = values[0]
+                img_y = values[1]
             
                 canvas.create_image(img_x*5,img_y*5, anchor=NW, image=active_img)
+        else:
+            for x in range(30):
+                active_img = None
+                lst.append(active_img)
+                values = pos_dict.get(f"img{x}", [])
+                img_x = values[0]
+                img_y = values[1]
+                            
+                canvas.create_image(img_x*5,img_y*5, anchor=NW, image=active_img)
+                monthly_count = 0
+                canvas.delete(image_id)
 
-    day_complete()
     img = PhotoImage(file="button.png")  
     btn = Button(window, image=img, command=lambda:[inc_daily(), glass_finished(client)], borderwidth=0, highlightthickness=0)
 
