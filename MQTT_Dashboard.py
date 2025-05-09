@@ -110,6 +110,12 @@ def create_window(client):
     water_frames.append(frame_img)
     canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
 
+    #reset button for testing
+    reset_img = PhotoImage(file="reset_button.png")
+    reset_btn = Button(window, image = reset_img,command=lambda:day_end(), borderwidth=0, highlightthickness=0)
+    reset_btn.imgref = reset_img
+    reset_btn.place(x=55*5,y=131*5)
+
     # garbage collection
     canvas.imgref = background_img
 
@@ -117,6 +123,11 @@ def create_window(client):
         frame_img = PhotoImage(file=f"F{daily_count}.png")
         water_frames.append(frame_img)
         canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
+
+    def day_end():
+        global daily_count
+        daily_count = 0
+        publish(client, daily_topic, daily_count, True)
 
     def glass_finished(client):
         global daily_count
