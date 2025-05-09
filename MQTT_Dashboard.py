@@ -40,33 +40,51 @@ def connect_mqtt():
     client.connect(broker, port)
     return client
 
-def subscribe(client: mqtt_client,update_ui):
+def subscribe(client: mqtt_client,update_ui, day_complete):
 
     def on_message(client, userdata, msg):
         global daily_count
         global monthly_count
+        
+        valid_message = False
 
-        print(f"recieved '{msg.payload.decode()}' from '{msg.topic}' topic")
+        allowed_msgs = list(range(0,32)) # needs to read up to 31 to allow for the reset to happen
+        allowed_msgs =[str(i) for i in allowed_msgs]
 
-        if msg.topic == daily_topic:
-            with open("daily_count.txt", "w") as d_file:
-                d_file.write(msg.payload.decode())
-                daily_count = int(msg.payload.decode())
-            d_file.close()
-            update_ui(daily_count)
+        # check the recieved message against each value
+        for i in allowed_msgs:
+            if msg.payload.decode() == i:
+                valid_message = True
+                break
+            else:
+                valid_message = False
 
-        if msg.topic == monthly_topic:
-            with open("monthly_count.txt", "w") as m_file:
-                m_file.write(msg.payload.decode())
-                monthly_count = int(msg.payload.decode())
-            m_file.close()
+        # if the message is allowed determine what to do with it
+        if valid_message:
+            print(f"recieved '{msg.payload.decode()}' from '{msg.topic}' topic")
+            if msg.topic == daily_topic:
+                    # to avoid an error with the animation frames
+                    if int(msg.payload.decode()) < 9:
+                        with open("daily_count.txt", "w") as d_file: 
+                            # update the txt file to hold the count between reruns of the script
+                            d_file.write(msg.payload.decode())
+                            daily_count = int(msg.payload.decode())
+                        d_file.close()
+                        update_ui(daily_count)
+            # does not need an additional check
+            if msg.topic == monthly_topic:
+                with open("monthly_count.txt", "w") as m_file:
+                    m_file.write(msg.payload.decode())
+                    monthly_count = int(msg.payload.decode())
+                m_file.close()
+                day_complete()
 
     client.subscribe(daily_topic)
     client.subscribe(monthly_topic)
     client.on_message = on_message
 
-def publish(client,topic,msg, retain:False):
-    result = client.publish(topic,msg, retain=False)
+def publish(client,topic,msg, retain):
+    result = client.publish(topic,msg, retain=True)
     status = result[0]
     if status == 0:
         print(f"send '{msg}' to topic '{topic}'")
@@ -186,18 +204,18 @@ def create_window(client):
     btn.imgref = img
     btn.place(x=100,y=610)
 
-    if daily_count == 8:
-        day_complete()
+    # if daily_count == 8:
+    #     day_complete()
     canvas.pack()
-    return window, update_ui
+    return window, update_ui, day_complete
 
 def main():
     client = connect_mqtt()
 
     client.loop_start()
 
-    window, update_ui = create_window(client)
-    subscribe(client, update_ui) 
+    window, update_ui, day_complete = create_window(client)
+    subscribe(client, update_ui, day_complete) 
     window.mainloop()
 
     client.loop_stop()
