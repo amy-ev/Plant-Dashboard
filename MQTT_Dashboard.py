@@ -101,7 +101,7 @@ def publish(client,topic,msg, retain):
             m_file.write(str(msg))
         m_file.close()
 
-# -----------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 def inc_daily():
     global daily_count
@@ -111,6 +111,7 @@ def inc_monthly():
     global monthly_count
     monthly_count+=1
 
+# UI CREATION ----------------------------------------------------------
 def create_window(client):
     global daily_count
 
@@ -137,37 +138,37 @@ def create_window(client):
     # garbage collection
     canvas.imgref = background_img
 
+    # update the water bottles animation frame
     def update_ui(daily_count):
         frame_img = PhotoImage(file=f"F{daily_count}.png")
         water_frames.append(frame_img)
         canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
 
+    # recreate what would be performed at midnight
     def day_end():
         global daily_count
         daily_count = 0
         publish(client, daily_topic, daily_count, True)
 
+    # carry out with every button click
     def glass_finished(client):
         global daily_count
         global monthly_count
 
         if daily_count <= 8:
-            for x in range(daily_count+1):
-                frame_img = PhotoImage(file=f"F{str(x)}.png")
-                water_frames.append(frame_img)
-                canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
             publish(client, daily_topic, daily_count, True)
 
             if daily_count == 8:
                 inc_monthly()
-                day_complete()
                 publish(client, monthly_topic, monthly_count, True)
 
+    # carried out if all 8 glasses were finished in a day
     def day_complete():
         global monthly_count
-
         active_img = PhotoImage()
-        image_id = canvas.create_image(0,0,image=active_img)
+        canvas.create_image(0,0,image=active_img)
+
+        # store each of the x,y coords of the shelf items
 
         pos_dict = {"img0":(0,13),"img1":(11,19),"img2":(22,17),"img3":(32,19),"img4":(46,20),"img5":(60,20),
             "img6":(0,39),"img7":(6,37),"img8":(23,39),"img9":(29,38),"img10":(46,42),"img11":(57,35),
@@ -176,7 +177,7 @@ def create_window(client):
             "img24":(6,100),"img25":(0,107),"img26":(45,101),"img27":(60,105),
             "img28":(0,122),"img29":(47,122)}
 
-        if monthly_count < 31:
+        if monthly_count < 31: # at 31 to allow a roll over for reset
              for x in range(monthly_count):
                 active_img = PhotoImage(file=f"img_{x}.png")
                 lst.append(active_img)
@@ -187,31 +188,23 @@ def create_window(client):
             
                 canvas.create_image(img_x*5,img_y*5, anchor=NW, image=active_img)
         else:
-            for x in range(30):
-                active_img = None
-                lst.append(active_img)
-                values = pos_dict.get(f"img{x}", [])
-                img_x = values[0]
-                img_y = values[1]
-                            
-                canvas.create_image(img_x*5,img_y*5, anchor=NW, image=active_img)
-                monthly_count = 0
-                canvas.delete(image_id)
+            # reset the count
+            monthly_count = 0
+            publish(client,monthly_topic, monthly_count, True)
 
+    # button creation
     img = PhotoImage(file="button.png")  
     btn = Button(window, image=img, command=lambda:[inc_daily(), glass_finished(client)], borderwidth=0, highlightthickness=0)
 
-    btn.imgref = img
+    btn.imgref = img 
     btn.place(x=100,y=610)
 
-    # if daily_count == 8:
-    #     day_complete()
     canvas.pack()
     return window, update_ui, day_complete
 
+# --------------------------------------------------------------------------------
 def main():
     client = connect_mqtt()
-
     client.loop_start()
 
     window, update_ui, day_complete = create_window(client)
