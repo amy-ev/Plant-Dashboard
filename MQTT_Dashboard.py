@@ -89,8 +89,21 @@ def subscribe(client: mqtt_client,update_ui, day_complete):
                     m_file.close()
                     day_complete()
         else:
+            valid_message = False
+
+            allowed_msgs = list(range(0,600)) 
+            allowed_msgs =[str(i) for i in allowed_msgs]
+
+            # check the recieved message against each value
+            for i in allowed_msgs:
+                if msg.payload.decode() == i:
+                    valid_message = True
+                    break
+                else:
+                    valid_message = False
             print(f'recieved {msg.payload.decode()} from {msg.topic} topic')
-            motion_data = int(msg.payload.decode())
+            if valid_message:
+                motion_data = int(msg.payload.decode())
                 
     client.subscribe(daily_topic)
     client.subscribe(monthly_topic)
@@ -184,7 +197,6 @@ def create_window(client):
         canvas.create_image(0,0,image=active_img)
 
         # store each of the x,y coords of the shelf items
-
         pos_dict = {"img0":(0,13),"img1":(11,19),"img2":(22,17),"img3":(32,19),"img4":(46,20),"img5":(60,20),
             "img6":(0,39),"img7":(6,37),"img8":(23,39),"img9":(29,38),"img10":(46,42),"img11":(57,35),
             "img12":(0,59),"img13":(6,59),"img14":(22,59),"img15":(33,57),"img16":(47,63),"img17":(54,57),
@@ -220,6 +232,7 @@ def create_window(client):
 
 # --------------------------------------------------------------------------------
 def createGraph():
+    # purely used to display motion sensor information - wouldnt be seen by the user.
     graph_window = Toplevel()
     graph_window.title('graph')
     graph_window.geometry('600x600+800+0')
