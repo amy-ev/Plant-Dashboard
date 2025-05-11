@@ -1,5 +1,10 @@
 import os
 import random
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import datetime as dt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg 
 from paho.mqtt import client as mqtt_client
 from tkinter import *
 from dotenv import load_dotenv
@@ -8,6 +13,7 @@ broker = os.getenv("MQTT_BROKER")
 port = int(os.getenv("PORT"))
 daily_topic = os.getenv("DAILY_TOPIC")
 monthly_topic = os.getenv("MONTHLY_TOPIC")
+motion_topic = os.getenv("MOTION_TOPIC")
 
 client_id = f'{os.getenv("CLIENT_ID")}-{random.randint(0,1000)}'
 username = os.getenv("USERNAME")
@@ -22,6 +28,7 @@ with open("monthly_count.txt", "r") as m_file:
     monthly_count = int(m_file.read())
 m_file.close()
 
+motion_data = 0
 lst = []
 water_frames = []
 img_x = 0
@@ -45,43 +52,51 @@ def subscribe(client: mqtt_client,update_ui, day_complete):
     def on_message(client, userdata, msg):
         global daily_count
         global monthly_count
+        global motion_data
         
-        valid_message = False
+        if msg.topic != motion_topic:
 
-        allowed_msgs = list(range(0,32)) # needs to read up to 31 to allow for the reset to happen
-        allowed_msgs =[str(i) for i in allowed_msgs]
+            valid_message = False
 
-        # check the recieved message against each value
-        for i in allowed_msgs:
-            if msg.payload.decode() == i:
-                valid_message = True
-                break
-            else:
-                valid_message = False
+            allowed_msgs = list(range(0,32)) # needs to read up to 31 to allow for the reset to happen
+            allowed_msgs =[str(i) for i in allowed_msgs]
 
-        # if the message is allowed determine what to do with it
-        if valid_message:
-            print(f"recieved '{msg.payload.decode()}' from '{msg.topic}' topic")
-            if msg.topic == daily_topic:
-                    # to avoid an error with the animation frames
-                    if int(msg.payload.decode()) < 9:
-                        with open("daily_count.txt", "w") as d_file: 
-                            # update the txt file to hold the count between reruns of the script
-                            d_file.write(msg.payload.decode())
-                            daily_count = int(msg.payload.decode())
-                        d_file.close()
-                        update_ui(daily_count)
-            # does not need an additional check
-            if msg.topic == monthly_topic:
-                with open("monthly_count.txt", "w") as m_file:
-                    m_file.write(msg.payload.decode())
-                    monthly_count = int(msg.payload.decode())
-                m_file.close()
-                day_complete()
+            # check the recieved message against each value
+            for i in allowed_msgs:
+                if msg.payload.decode() == i:
+                    valid_message = True
+                    break
+                else:
+                    valid_message = False
 
+            # if the message is allowed determine what to do with it
+            if valid_message:
+                print(f"recieved '{msg.payload.decode()}' from '{msg.topic}' topic")
+                if msg.topic == daily_topic:
+                        # to avoid an error with the animation frames
+                        if int(msg.payload.decode()) < 9:
+                            with open("daily_count.txt", "w") as d_file: 
+                                # update the txt file to hold the count between reruns of the script
+                                d_file.write(msg.payload.decode())
+                                daily_count = int(msg.payload.decode())
+                            d_file.close()
+                            update_ui(daily_count)
+                # does not need an additional check
+                if msg.topic == monthly_topic:
+                    with open("monthly_count.txt", "w") as m_file:
+                        m_file.write(msg.payload.decode())
+                        monthly_count = int(msg.payload.decode())
+                    m_file.close()
+                    day_complete()
+        else:
+            print(f'recieved {msg.payload.decode()} from {msg.topic} topic')
+            motion_data = int(msg.payload.decode())
+                
     client.subscribe(daily_topic)
     client.subscribe(monthly_topic)
+    client.subscribe(motion_topic)
     client.on_message = on_message
+
 
 def publish(client,topic,msg, retain):
     result = client.publish(topic,msg, retain=True)
@@ -198,19 +213,56 @@ def create_window(client):
 
     btn.imgref = img 
     btn.place(x=100,y=610)
+    graph = createGraph()
 
     canvas.pack()
-    return window, update_ui, day_complete
+    return window, update_ui, day_complete, graph
 
 # --------------------------------------------------------------------------------
+def createGraph():
+    graph_window = Toplevel()
+    graph_window.title('graph')
+    graph_window.geometry('600x600+800+0')
+
+    fig = Figure(figsize=(9,9),dpi=100)
+
+    plot1 = fig.add_subplot(111)
+    xs = []
+    ys = []
+    
+    def animate(i, xs, ys):
+        global motion_data
+
+        xs.append(dt.datetime.now().strftime('%H:%M:%S'))
+        ys.append(motion_data)
+
+        xs = xs[-10:]
+        ys = ys[-10:]
+
+        plot1.clear()
+        plot1.plot(xs,ys)
+
+        plt.setp(plot1.get_xticklabels(), rotation=45)
+        #plt.title('Motion Sensor Data')
+        #plt.ylabel('Range')
+
+
+    canvas = FigureCanvasTkAgg(fig, master=graph_window)
+    ani = animation.FuncAnimation(fig,animate, fargs=(xs,ys),interval=1000, cache_frame_data=False)
+    plt.show()
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    return graph_window
+
 def main():
     client = connect_mqtt()
     client.loop_start()
 
-    window, update_ui, day_complete = create_window(client)
+    window, update_ui, day_complete, graph = create_window(client)
     subscribe(client, update_ui, day_complete) 
     window.mainloop()
-
+    
     client.loop_stop()
 
 if __name__ == '__main__':
