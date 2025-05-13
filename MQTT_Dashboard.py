@@ -14,6 +14,7 @@ port = int(os.getenv("PORT"))
 daily_topic = os.getenv("DAILY_TOPIC")
 monthly_topic = os.getenv("MONTHLY_TOPIC")
 motion_topic = os.getenv("MOTION_TOPIC")
+coaster_topic = os.getenv("COASTER_TOPIC")
 
 client_id = f'{os.getenv("CLIENT_ID")}-{random.randint(0,1000)}'
 username = os.getenv("USERNAME")
@@ -29,6 +30,7 @@ with open("monthly_count.txt", "r") as m_file:
 m_file.close()
 
 motion_data = 0
+coaster_data = 0
 lst = []
 water_frames = []
 img_x = 0
@@ -53,8 +55,9 @@ def subscribe(client: mqtt_client,update_ui, day_complete):
         global daily_count
         global monthly_count
         global motion_data
+        global coaster_data
         
-        if msg.topic != motion_topic:
+        if msg.topic != motion_topic and msg.topic != coaster_topic:
 
             valid_message = False
 
@@ -88,10 +91,9 @@ def subscribe(client: mqtt_client,update_ui, day_complete):
                         monthly_count = int(msg.payload.decode())
                     m_file.close()
                     day_complete()
-        else:
+        elif msg.topic == motion_topic:
             valid_message = False
-
-            allowed_msgs = list(range(0,600)) 
+            allowed_msgs = list(range(0,31)) 
             allowed_msgs =[str(i) for i in allowed_msgs]
 
             # check the recieved message against each value
@@ -101,13 +103,29 @@ def subscribe(client: mqtt_client,update_ui, day_complete):
                     break
                 else:
                     valid_message = False
-            print(f'recieved {msg.payload.decode()} from {msg.topic} topic')
+
             if valid_message:
                 motion_data = int(msg.payload.decode())
+        else:
+            valid_message = False
+            allowed_msgs = list(range(-15,5000)) 
+            allowed_msgs =[str(i) for i in allowed_msgs]
+
+            for i in allowed_msgs:
+                if msg.payload.decode() == i:
+                    valid_message = True
+                    break
+                else:
+                    valid_message = False
+
+            if valid_message:
+                coaster_data = int(msg.payload.decode())
                 
     client.subscribe(daily_topic)
     client.subscribe(monthly_topic)
     client.subscribe(motion_topic)
+    client.subscribe(coaster_topic)
+
     client.on_message = on_message
 
 
@@ -225,17 +243,19 @@ def create_window(client):
 
     btn.imgref = img 
     btn.place(x=100,y=610)
-    graph = createGraph()
+    
+    motion_graph = createMotionGraph()
+    coaster_graph = createCoasterGraph()
 
     canvas.pack()
-    return window, update_ui, day_complete, graph
+    return window, update_ui, day_complete, motion_graph, coaster_graph
 
 # --------------------------------------------------------------------------------
-def createGraph():
+def createMotionGraph():
     # purely used to display motion sensor information - wouldnt be seen by the user.
     graph_window = Toplevel()
-    graph_window.title('graph')
-    graph_window.geometry('600x600+800+0')
+    graph_window.title('Motion Sensor Data')
+    graph_window.geometry('600x600+1400+0')
 
     fig = Figure(figsize=(9,9),dpi=100)
 
@@ -256,9 +276,6 @@ def createGraph():
         plot1.plot(xs,ys)
 
         plt.setp(plot1.get_xticklabels(), rotation=45)
-        #plt.title('Motion Sensor Data')
-        #plt.ylabel('Range')
-
 
     canvas = FigureCanvasTkAgg(fig, master=graph_window)
     ani = animation.FuncAnimation(fig,animate, fargs=(xs,ys),interval=1000, cache_frame_data=False)
@@ -268,11 +285,47 @@ def createGraph():
 
     return graph_window
 
+
+# --------------------------------------------------------------------------------
+def createCoasterGraph():
+    graph_window = Toplevel()
+    graph_window.title('Coaster Data')
+    graph_window.geometry('600x600+750+0')
+
+    fig = Figure(figsize=(9,9),dpi=100)
+
+    plot1 = fig.add_subplot(111)
+    xs = []
+    ys = []
+    
+    def animate(i, xs, ys):
+        global motion_data
+
+        xs.append(dt.datetime.now().strftime('%H:%M:%S'))
+        ys.append(motion_data)
+
+        xs = xs[-10:]
+        ys = ys[-10:]
+
+        plot1.clear()
+        plot1.plot(xs,ys)
+
+        plt.setp(plot1.get_xticklabels(), rotation=45)
+
+    canvas = FigureCanvasTkAgg(fig, master=graph_window)
+    ani = animation.FuncAnimation(fig,animate, fargs=(xs,ys),interval=1000, cache_frame_data=False)
+    plt.show()
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    return graph_window
+
+# MAIN -----------------------------------------------------------
 def main():
     client = connect_mqtt()
     client.loop_start()
 
-    window, update_ui, day_complete, graph = create_window(client)
+    window, update_ui, day_complete, motion_graph, coaster_graph = create_window(client)
     subscribe(client, update_ui, day_complete) 
     window.mainloop()
     
