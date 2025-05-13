@@ -168,15 +168,15 @@ def create_window(client):
 
     # background image
     canvas = Canvas(window, width=325, height=700, borderwidth=0, highlightthickness=0)
-    background_img = PhotoImage(file="background.png")
+    background_img = PhotoImage(file="assets/background.png")
     canvas.create_image(0,0, anchor=NW, image=background_img)
 
-    frame_img = PhotoImage(file=f"F{daily_count}.png")
+    frame_img = PhotoImage(file=f"assets/F{daily_count}.png")
     water_frames.append(frame_img)
     canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
 
     #reset button for testing
-    reset_img = PhotoImage(file="reset_button.png")
+    reset_img = PhotoImage(file="assets/reset_button.png")
     reset_btn = Button(window, image = reset_img,command=lambda:day_end(), borderwidth=0, highlightthickness=0)
     reset_btn.imgref = reset_img
     reset_btn.place(x=55*5,y=131*5)
@@ -186,7 +186,7 @@ def create_window(client):
 
     # update the water bottles animation frame
     def update_ui(daily_count):
-        frame_img = PhotoImage(file=f"F{daily_count}.png")
+        frame_img = PhotoImage(file=f"assets/F{daily_count}.png")
         water_frames.append(frame_img)
         canvas.create_image(22*5,99*5, anchor=NW, image=frame_img)
 
@@ -224,7 +224,7 @@ def create_window(client):
 
         if monthly_count < 31: # at 31 to allow a roll over for reset
              for x in range(monthly_count):
-                active_img = PhotoImage(file=f"img_{x}.png")
+                active_img = PhotoImage(file=f"assets/img_{x}.png")
                 lst.append(active_img)
 
                 values = pos_dict.get(f"img{x}", [])
@@ -238,7 +238,7 @@ def create_window(client):
             publish(client,monthly_topic, monthly_count, True)
 
     # button creation
-    img = PhotoImage(file="button.png")  
+    img = PhotoImage(file="assets/button.png")  
     btn = Button(window, image=img, command=lambda:[inc_daily(), glass_finished(client)], borderwidth=0, highlightthickness=0)
 
     btn.imgref = img 
